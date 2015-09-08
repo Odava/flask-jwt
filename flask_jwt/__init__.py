@@ -119,11 +119,11 @@ def verify_jwt(realm=None):
     parts = auth.split()
 
     if parts[0].lower() != auth_header_prefix.lower():
-        raise JWTError('Invalid JWT header', 'Unsupported authorization type')
+        raise JWTError('Invalid JWT header', 'Unsupported authorization type', 401)
     elif len(parts) == 1:
-        raise JWTError('Invalid JWT header', 'Token missing')
+        raise JWTError('Invalid JWT header', 'Token missing', 401)
     elif len(parts) > 2:
-        raise JWTError('Invalid JWT header', 'Token contains spaces')
+        raise JWTError('Invalid JWT header', 'Token contains spaces', 401)
 
     try:
         handler = _jwt.decode_callback
@@ -131,7 +131,7 @@ def verify_jwt(realm=None):
     except SignatureExpired:
         raise JWTError('Expired JWT', 'Token is expired', 401)
     except BadSignature:
-        raise JWTError('Invalid JWT', 'Token is undecipherable')
+        raise JWTError('Invalid JWT', 'Token is undecipherable', 401)
 
     _request_ctx_stack.top.current_user = user = _jwt.user_callback(payload)
     _request_ctx_stack.top.payload = payload
