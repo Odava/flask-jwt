@@ -23,6 +23,7 @@ from werkzeug.local import LocalProxy
 __version__ = '0.2.0'
 
 current_user = LocalProxy(lambda: getattr(_request_ctx_stack.top, 'current_user', None))
+payload = LocalProxy(lambda: getattr(_request_ctx_stack.top, 'payload', None))
 
 _jwt = LocalProxy(lambda: current_app.extensions['jwt'])
 
@@ -113,9 +114,7 @@ def verify_jwt(realm=None):
     auth_header_prefix = current_app.config['JWT_AUTH_HEADER_PREFIX']
 
     if auth is None:
-        raise JWTError('Authorization Required', 'Authorization header was missing', 401, {
-            'WWW-Authenticate': 'JWT realm="%s"' % realm
-        })
+        raise JWTError('Authorization Required', 'Authorization header was missing', 401)
 
     parts = auth.split()
 
@@ -130,16 +129,15 @@ def verify_jwt(realm=None):
         handler = _jwt.decode_callback
         payload = handler(parts[1])
     except SignatureExpired:
-        raise JWTError('Expired JWT', 'Token is expired', 401, {
-            "WWW-Authenticate": 'JWT realm="{0}"'.format(realm)
-        })
+        raise JWTError('Expired JWT', 'Token is expired', 401)
     except BadSignature:
         raise JWTError('Invalid JWT', 'Token is undecipherable')
 
     _request_ctx_stack.top.current_user = user = _jwt.user_callback(payload)
+    _request_ctx_stack.top.payload = payload
 
     if user is None:
-        raise JWTError('Invalid JWT', 'User does not exist')
+        raise JWTError('Invalid JWT', 'User does not exist', 401)
 
 
 def generate_token(user):
