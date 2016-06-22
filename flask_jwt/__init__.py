@@ -80,7 +80,7 @@ CONFIG_DEFAULTS = {
 }
 
 
-def jwt_required(realm=None):
+def jwt_required(realm=None, allow_cookie=False):
     """View decorator that requires a valid JWT token to be present in the request
 
     :param realm: an optional realm
@@ -88,7 +88,7 @@ def jwt_required(realm=None):
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
-            verify_jwt(realm)
+            verify_jwt(realm, allow_cookie)
             return fn(*args, **kwargs)
         return decorator
     return wrapper
@@ -102,7 +102,7 @@ class JWTError(Exception):
         self.headers = headers
 
 
-def verify_jwt(realm=None):
+def verify_jwt(realm=None, allow_cookie=False):
     """Does the actual work of verifying the JWT data in the current request.
     This is done automatically for you by `jwt_required()` but you could call it manually.
     Doing so would be useful in the context of optional JWT access in your APIs.
@@ -111,6 +111,8 @@ def verify_jwt(realm=None):
     """
     realm = realm or current_app.config['JWT_DEFAULT_REALM']
     auth = request.headers.get('Authorization', None)
+    if auth is None and allow_cookie:
+        auth = request.cookies.get('jwt_auth', None)
     auth_header_prefix = current_app.config['JWT_AUTH_HEADER_PREFIX']
 
     if auth is None:
